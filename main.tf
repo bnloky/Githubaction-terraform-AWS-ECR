@@ -10,18 +10,40 @@ terraform {
   }
 }
 
-resource "aws_lambda_function" "my_function" {
-    role = "arn:aws:iam::681217613251:role/My_Lambda_Function"
-    function_name = "my_lambda_function"
-    runtime = "python3.8"
-    handler = "index.handler"
-    timeout = 300
-    filename = data.archive_file.lambda_function_archive.output_path
-    source_code_hash = filebase64sha256(data.archive_file.lambda_function_archive.output_path)
+resource "aws_ecr_repository" "Ecr-Repository" {
+  name = "Push the dockerImage to ECR"
 }
 
-data "archive_file" "lambda_function_archive" {
-  type        = "zip"
-  source_dir  =  "./lambdafunction"  # Path to the directory containing your Lambda function code
-  output_path = "./lambdafunction.zip"   # Path where you want to save the generated zip archive
+data "aws_iam_policy_document" "aws_ecr_repo_policy_doc" {
+  statement {
+    sid    = "new policy"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["681217613251"]
+    }
+
+    actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:PutImage",
+      "ecr:InitiateLayerUpload",
+      "ecr:UploadLayerPart",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeRepositories",
+      "ecr:GetRepositoryPolicy",
+      "ecr:ListImages",
+      "ecr:DeleteRepository",
+      "ecr:BatchDeleteImage",
+      "ecr:SetRepositoryPolicy",
+      "ecr:DeleteRepositoryPolicy",
+    ]
+  }
+}
+
+resource "aws_ecr_repository_policy" "aws-ecr-rep-policy" {
+  repository = aws_ecr_repository.Ecr-Repository.name
+  policy     = data.aws_iam_policy_document.aws_ecr_repository_policy.json
 }

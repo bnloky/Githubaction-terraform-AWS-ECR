@@ -1,35 +1,48 @@
-name: build,tag,and push to ecr
+name: Update ECR Lambda image
 
 on:
   push:
     branches:
-      - main  # Adjust the branch name as needed
-
+      - main 
+      
 jobs:
-  build:
+  build-and-push:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.0.4  # Use the version of Terraform you want use
- 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{secrets.SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1  # Adjust the region as needed
+        aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Initialize Terraform
-      run: terraform init
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+          mask-password: 'true'
 
-    # - name: Plan Terraform changes
-    #   run: terraform plan 
-
-    # - name: Apply Terraform changes
-    #   run: terraform apply -auto-approve
+    - name: Swap ACTUAL image with PREVIOUS
+      env:
+          ECR_REPOSITORY: demo-app-repo
+          IMAGE_TAG: PREVIOUS
+      run: |
+        aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=PREVIOUS
+        MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=ACTUAL --output text --query images[].imageManifest)
+        aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag $IMAGE_TAG --image-manifest "$MANIFEST"
+    
+    - name: Build, Tag, and Push the ACTUAL Image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: deploy-aws-lambda-ecr-image
+        IMAGE_TAG: ACTUAL
+      run: |
+        cd EcrRepo
+        aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
