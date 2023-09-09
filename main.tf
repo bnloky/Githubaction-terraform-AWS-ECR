@@ -10,22 +10,23 @@ terraform {
   }
 }
 
-resource "aws_ecr_repository" "Ecr-Repository" {
-  name = "Push the dockerImage to ECR"
+resource "aws_ecr_repository" "ecr_repo" {
+  name = "deploy-aws-lambda-ecr-image"
 }
 
-data "aws_iam_policy_document" "aws_ecr_repo_policy_doc" {
+data "aws_iam_policy_document" "ecr_repo_policy_doc" {
   statement {
-    sid    = "new policy"
+    sid    = "deploy aws lambda ecr image policy"
     effect = "Allow"
 
     principals {
       type        = "AWS"
-      identifiers = ["681217613251"]
+      identifiers = [data.aws_caller_identity.current.account_id]
     }
 
     actions = [
       "ecr:GetDownloadUrlForLayer",
+      "ecr:GetAuthorizationToken",
       "ecr:BatchGetImage",
       "ecr:BatchCheckLayerAvailability",
       "ecr:PutImage",
@@ -43,7 +44,7 @@ data "aws_iam_policy_document" "aws_ecr_repo_policy_doc" {
   }
 }
 
-resource "aws_ecr_repository_policy" "aws-ecr-rep-policy" {
-  repository = aws_ecr_repository.Ecr-Repository.name
-  policy     = data.aws_iam_policy_document.aws_ecr_repository_policy.json
+resource "aws_ecr_repository_policy" "ecr_repo_policy" {
+  repository = aws_ecr_repository.ecr_repo.name
+  policy     = data.aws_iam_policy_document.ecr_repo_policy_doc.json
 }
