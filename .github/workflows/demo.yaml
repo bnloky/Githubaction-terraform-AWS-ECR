@@ -29,5 +29,5 @@ jobs:
         ECR_REPOSITORY: demo-app-repo
         IMAGE_TAG: sample_image
       run: |
-        cat ./ecrrepo/Dockerfile | docker buildx build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -
+        cat Dockerfile | docker buildx build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
