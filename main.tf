@@ -4,19 +4,20 @@ region = "ap-south-1"
 
 terraform {
   backend "s3" {
-    bucket = "terraformbackedstatefilestore"
+    bucket = "myecr-statefile-store"
     key    = "tffiles.tfstate"
     region = "ap-south-1"
+    encrypt = ture
   }
 }
 
 resource "aws_ecr_repository" "ecr_repo" {
-  name = "deploy-aws-lambda-ecr-image"
+  name = "deploy-aws-image-to-repo"
 }
 
 data "aws_iam_policy_document" "ecr_repo_policy_doc" {
   statement {
-    sid    = "deploy aws lambda ecr image policy"
+    sid    = "deploy-aws-image-to-repo policy"
     effect = "Allow"
 
     principals {
