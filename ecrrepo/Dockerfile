@@ -1,5 +1,5 @@
 FROM openjdk:11-jdk AS build
-COPY HelloWorld.java ./ecrrepo/
+COPY HelloWorld.java .
 RUN javac HelloWorld.java
  
 FROM openjdk:11-jre AS run
