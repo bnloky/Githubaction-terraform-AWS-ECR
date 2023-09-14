@@ -1,12 +1,11 @@
 name: Push to ECR
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
+    name: build image
     runs-on: ubuntu-latest
 
     steps:
@@ -21,12 +20,14 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to Amazon ECR
-      run: |
-        aws ecr get-login-password --region your-aws-region | docker login --username AWS --password-stdin 681217613251.dkr.ecr.your-aws-region.amazonaws.com
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build and Push Docker Image to ECR
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: demo-app-repo
+        IMAGE_TAG: sample_image
       run: |
-        docker build -t myimage:latest .
-        docker tag myimage:latest 681217613251.dkr.ecr.your-aws-region.amazonaws.com/demo-app-repo:latest
-        docker push 681217613251.dkr.ecr.your-aws-region.amazonaws.com/demo-app-repo:latest : Update ECR Lambda image
-
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
